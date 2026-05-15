@@ -30,8 +30,9 @@ def main():
     )
 
     # llm=ChatOpenAI(temperature=0,model="gpt-4.1-mini")
+    llm=ChatOpenAI(temperature=0,model="gpt-5")
     # llm = ChatOllama(temperature=0,model="gemma3:270m")
-    llm= ChatOllama(temperature=0,model="qwen3:14b")
+    # llm= ChatOllama(temperature=0,model="qwen3:14b")
     chain=summary_prompt_template | llm
     response= chain.invoke(input={"information": information})
     print("Response is :", response.content)
