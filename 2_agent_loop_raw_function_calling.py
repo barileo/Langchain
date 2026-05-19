@@ -6,50 +6,54 @@ load_dotenv()
 # from langchain.tools import tool
 # from langchain_core.messages import HumanMessage,SystemMessage,ToolMessage
 
+import ollama
 from langsmith import traceable
 
-import ollama
-
-MAX_AGENT_ITERATIONS =10
-MODEL ="qwen3:14b"
+MAX_AGENT_ITERATIONS = 10
+MODEL = "qwen3:14b"
 
 
-#-----Tools (custom tool )-----
+# -----Tools (custom tool )-----
+
 
 @traceable(name="Langchain agent loop")
-def get_product_price(product:str)->float:
+def get_product_price(product: str) -> float:
     """Look for proce of the product in catalog"""
     print(f"Checking price of the product {product}")
-    price= {"laptop":1299.99,"headphone":149.95,"keyboard":89.50}
-    return price.get(product,0)
+    price = {"laptop": 1299.99, "headphone": 149.95, "keyboard": 89.50}
+    return price.get(product, 0)
+
 
 @traceable(name="Langchain agent loop")
-def apply_discount(price:float,discount_tier:str)->float:
+def apply_discount(price: float, discount_tier: str) -> float:
     """Apply discount tier to a price and return the final price.
     Available tiers: bronze, silve, gold."""
-    print(f"Applying discount tier on the product, price is {price} and discount tier is {discount_tier}")
-    discount_percentage={"bronze":5,"silver":12,"gold":23}
-    discount= discount_percentage.get(discount_tier,0)
-    return round((price*(1-(discount/100))),2)
+    print(
+        f"Applying discount tier on the product, price is {price} and discount tier is {discount_tier}"
+    )
+    discount_percentage = {"bronze": 5, "silver": 12, "gold": 23}
+    discount = discount_percentage.get(discount_tier, 0)
+    return round((price * (1 - (discount / 100))), 2)
+
 
 # Difference 2: Without @tool, we must MANUALLY define the JSON schema for each function.
 # This is exactly what LangChain's @tool decorator generates automatically
 # from the function's type hints and docstring.
-tools_for_llm =[
+tools_for_llm = [
     {
-        "type":"function",
-        "function":{
-            "name":"get_product_price",
-            "description":"Look for proce of the product in catalog",
-            "parameters":{
-                "type":"object",
-                "properties":{
-                    "product":{
-                        "type":"string",
+        "type": "function",
+        "function": {
+            "name": "get_product_price",
+            "description": "Look for proce of the product in catalog",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "product": {
+                        "type": "string",
                         "description": "The product name, e.g. 'laptop', 'headphones', 'keyboard'",
                     },
                 },
-                "required":["product"],
+                "required": ["product"],
             },
         },
     },
@@ -73,13 +77,13 @@ tools_for_llm =[
     },
 ]
 
+
 @traceable(name="Ollama Chat", run_type="llm")
 def ollama_chat_traced(messages):
     return ollama.chat(model=MODEL, tools=tools_for_llm, messages=messages)
 
 
-
-#--------- Agent Loop-------
+# --------- Agent Loop-------
 @traceable(name="Ollama agent loop")
 def run_agent(question: str):
     tools_dict = {
@@ -93,7 +97,7 @@ def run_agent(question: str):
     # llm_with_tools = llm.bind_tools(tools)
 
     print(f"Question: {question}")
-    print("=" *60)
+    print("=" * 60)
 
     messages = [
         {
@@ -117,10 +121,10 @@ def run_agent(question: str):
         {"role": "user", "content": question},
     ]
 
-    for iteration in range(1,MAX_AGENT_ITERATIONS+1):
+    for iteration in range(1, MAX_AGENT_ITERATIONS + 1):
         print(f"\n --- Iteration {iteration}---")
 
-        response= ollama_chat_traced(messages=messages)
+        response = ollama_chat_traced(messages=messages)
         ai_message = response.message
 
         tool_calls = ai_message.tool_calls
@@ -128,10 +132,10 @@ def run_agent(question: str):
         if not tool_calls:
             print(f"Model output is {ai_message.content}")
             return ai_message.content
-        
-        #LLM can return multiplle tools for calling, so I will apply simple logic to pick the first tool call
+
+        # LLM can return multiplle tools for calling, so I will apply simple logic to pick the first tool call
         # in case it gives multiple tools
-        tool_call=tool_calls[0]
+        tool_call = tool_calls[0]
         tool_name = tool_call.function.name
         tool_args = tool_call.function.arguments
 
@@ -140,7 +144,7 @@ def run_agent(question: str):
         tool_to_use = tools_dict.get(tool_name)
         if tool_to_use is None:
             raise ValueError(f"Tool {tool_name} not found")
-        
+
         observation = tool_to_use(**tool_args)
 
         print(f"Tool result  {observation}")
@@ -153,12 +157,8 @@ def run_agent(question: str):
             }
         )
 
-    
     print(f"We maxed out on iterations without final answer.")
     return None
-
-
-
 
 
 if __name__ == "__main__":

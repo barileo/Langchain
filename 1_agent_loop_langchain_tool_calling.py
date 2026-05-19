@@ -4,47 +4,51 @@ load_dotenv()
 
 from langchain.chat_models import init_chat_model
 from langchain.tools import tool
-from langchain_core.messages import HumanMessage,SystemMessage,ToolMessage
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langsmith import traceable
 
-MAX_AGENT_ITERATIONS =10
-MODEL ="qwen3:14b"
+MAX_AGENT_ITERATIONS = 10
+MODEL = "qwen3:14b"
 
 
-#-----Tools (langchain @tool decorator)-----
+# -----Tools (langchain @tool decorator)-----
+
 
 @tool
-def get_product_price(product:str)->float:
+def get_product_price(product: str) -> float:
     """Look for proce of the product in catalog"""
     print(f"Checking price of the product {product}")
-    price= {"laptop":1299.99,"headphone":149.95,"keyboard":89.50}
-    return price.get(product,0)
+    price = {"laptop": 1299.99, "headphone": 149.95, "keyboard": 89.50}
+    return price.get(product, 0)
+
 
 @tool
-def apply_discount(price:float,discount_tier:str)->float:
+def apply_discount(price: float, discount_tier: str) -> float:
     """Apply discount tier to a price and return the final price.
     Available tiers: bronze, silve, gold."""
-    print(f"Applying discount tier on the product, price is {price} and discount tier is {discount_tier}")
-    discount_percentage={"bronze":5,"silver":12,"gold":23}
-    discount= discount_percentage.get(discount_tier,0)
-    return round((price*(1-(discount/100))),2)
+    print(
+        f"Applying discount tier on the product, price is {price} and discount tier is {discount_tier}"
+    )
+    discount_percentage = {"bronze": 5, "silver": 12, "gold": 23}
+    discount = discount_percentage.get(discount_tier, 0)
+    return round((price * (1 - (discount / 100))), 2)
 
 
-#--------- Agent Loop-------
+# --------- Agent Loop-------
 @traceable(name="Langchain agent loop")
 def run_agent(question: str):
-    tools = [get_product_price,apply_discount]
+    tools = [get_product_price, apply_discount]
     tool_dict = {t.name: t for t in tools}
 
     # On device Ollam model
     # llm=init_chat_model(f"ollama:{MODEL}",temperature=0)
-    llm= init_chat_model(f"openai:gpt-5",temperature=0)
+    llm = init_chat_model(f"openai:gpt-5", temperature=0)
     llm_with_tools = llm.bind_tools(tools)
 
     print(f"Question: {question}")
-    print("=" *60)
+    print("=" * 60)
 
-    messages=[
+    messages = [
         SystemMessage(
             content=(
                 "You are a helpful shopping assistant. "
@@ -59,12 +63,13 @@ def run_agent(question: str):
                 "3. NEVER calculate discounts yourself using math. "
                 "Always use the apply_discount tool.\n"
                 "4. If the user does not specify a discount tier, "
-                "ask them which tier to use — do NOT assume one.")
-                ),
+                "ask them which tier to use — do NOT assume one."
+            )
+        ),
         HumanMessage(content=question),
     ]
 
-    for iteration in range(1,MAX_AGENT_ITERATIONS+1):
+    for iteration in range(1, MAX_AGENT_ITERATIONS + 1):
         print(f"\n --- Iteration {iteration}---")
 
         ai_message = llm_with_tools.invoke(messages)
@@ -73,35 +78,31 @@ def run_agent(question: str):
         if not tool_calls:
             print(f"Model output is {ai_message.content}")
             return ai_message.content
-        
-        #LLM can return multiplle tools for calling, so I will apply simple logic to pick the first tool call
+
+        # LLM can return multiplle tools for calling, so I will apply simple logic to pick the first tool call
         # in case it gives multiple tools
-        tool_call=tool_calls[0]
-        tool_name=tool_call.get("name")
-        tool_args=tool_call.get("args",{})
-        tool_call_id=tool_call.get("id")
+        tool_call = tool_calls[0]
+        tool_name = tool_call.get("name")
+        tool_args = tool_call.get("args", {})
+        tool_call_id = tool_call.get("id")
 
         print(f"Tool selected {tool_name} with args: {tool_args}")
 
         tool_to_use = tool_dict.get(tool_name)
         if tool_to_use is None:
             raise ValueError(f"Tool {tool_name} not found")
-        
+
         observation = tool_to_use.invoke(tool_args)
 
         print(f"Tool result  {observation}")
 
         messages.append(ai_message)
         messages.append(
-            ToolMessage(content=str(observation),tool_call_id=tool_call_id)
+            ToolMessage(content=str(observation), tool_call_id=tool_call_id)
         )
 
-    
     print(f"We maxed out on iterations without final answer.")
     return None
-
-
-
 
 
 if __name__ == "__main__":
