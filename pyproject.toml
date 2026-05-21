@@ -11,4 +11,5 @@ dependencies = [
     "langchain-ollama>=1.1.0",
     "langchain-openai>=1.2.1",
     "python-dotenv>=1.2.2",
+    "ragas>=0.4.3",
 ]
