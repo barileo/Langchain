@@ -1,5 +1,5 @@
 #!/bin/sh
-'''exec' '/Users/barinderpaulsingh/Projects/Udemy LangChain Agentic AI/langchain-course/.venv/bin/python' "$0" "$@"
+'''exec' '/Users/barinderpaulsingh/Projects/Udemy LangChain Agentic AI/langchain-course/.venv/bin/python3' "$0" "$@"
 ' '''
 
 
