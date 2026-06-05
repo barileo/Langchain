@@ -30,7 +30,7 @@ async def main():
             agent = create_agent(llm,tools=tools)
 
             result = await agent.ainvoke({
-                "messages": [HumanMessage(content="what is 4+4?")]
+                "messages": [HumanMessage(content="what is (4+5)*3?")]
             })
 
             print(result["messages"][-1].content)
