@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "black>=26.5.1",
+    "fastmcp>=3.4.0",
     "isort>=8.0.1",
     "langchain-mcp-adapters>=0.2.2",
     "langchain-openai>=1.2.2",
