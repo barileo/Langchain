@@ -14,7 +14,7 @@ load_dotenv()
 llm =ChatOpenAI()
 studio_server_params = StdioServerParameters(
     command="python",
-    args=["/Users/barinderpaulsingh/Projects/Udemy LangChain Agentic AI/langchain-course/servers/math_server.py"],
+    args=["/Users/barinderpaulsingh/Projects/UdemyLangChainAgenticAI/langchain-course/servers/math_server.py"],
 )
 
 async def main():
